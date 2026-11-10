@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Authentication UID" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["student", "warden", "admin", "maintenance_staff"] },
+        "phone": { "type": "string", "maxLength": 25 },
+        "department": { "type": "string", "maxLength": 100 },
+        "studentId": { "type": "string", "maxLength": 50 },
+        "yearOfStudy": { "type": "string", "maxLength": 50 },
+        "hostel": { "type": "string", "maxLength": 100 },
+        "roomNumber": { "type": "string", "maxLength": 50 },
+        "designation": { "type": "string", "maxLength": 100 },
+        "specialty": { "type": "string", "maxLength": 100 },
+        "assignedHostel": { "type": "string", "maxLength": 100 },
+        "assignedBlocks": { "type": "string", "maxLength": 100 },
+        "accountStatus": { "type": "string", "enum": ["active", "pending", "deactivated"] },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Campus or hostel facility complaint record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 60 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "building": { "type": "string", "maxLength": 120 },
+        "specificLocation": { "type": "string", "maxLength": 120 },
+        "images": { "type": "array" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High", "Urgent"] },
+        "status": { "type": "string", "enum": ["Submitted", "Under Review", "Assigned", "In Progress", "Resolved", "Reopened", "Closed"] },
+        "studentId": { "type": "string", "maxLength": 64 },
+        "studentUid": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentEmail": { "type": "string", "maxLength": 150 },
+        "studentPhone": { "type": "string", "maxLength": 25 },
+        "assignedWardenUid": { "type": "string", "maxLength": 128 },
+        "assignedStaffUid": { "type": "string", "maxLength": 128 },
+        "assignedStaffName": { "type": "string", "maxLength": 100 },
+        "assignedStaffPhone": { "type": "string", "maxLength": 25 },
+        "assignedStaffSpecialty": { "type": "string", "maxLength": 60 },
+        "resolutionRemarks": { "type": "string", "maxLength": 1000 },
+        "resolutionConfirmedByStudent": { "type": "boolean" },
+        "studentRating": { "type": "number" },
+        "studentFeedback": { "type": "string", "maxLength": 1000 },
+        "reopenedReason": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "resolvedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "description", "building", "specificLocation", "priority", "status", "studentUid", "createdAt"]
+    },
+    "StatusHistory": {
+      "title": "StatusHistory",
+      "description": "Audit record of a complaint status transition",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "complaintId": { "type": "string", "maxLength": 64 },
+        "previousStatus": { "type": "string", "maxLength": 50 },
+        "newStatus": { "type": "string", "maxLength": 50 },
+        "updatedByUid": { "type": "string", "maxLength": 128 },
+        "updatedByName": { "type": "string", "maxLength": 100 },
+        "updatedByRole": { "type": "string", "maxLength": 50 },
+        "remarks": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "complaintId", "newStatus", "updatedByUid", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app real-time notification alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "recipientRole": { "type": "string", "enum": ["student", "warden", "admin", "maintenance_staff", "all"] },
+        "recipientUid": { "type": "string", "maxLength": 128 },
+        "complaintId": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "maxLength": 50 },
+        "isRead": { "type": "boolean" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "title", "message", "timestamp", "isRead"]
+    },
+    "Hostel": {
+      "title": "Hostel",
+      "description": "Campus residential block metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["Boys", "Girls", "Co-Ed", "Faculty"] },
+        "totalRooms": { "type": "number" },
+        "wardenName": { "type": "string", "maxLength": 100 },
+        "wardenUid": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile with role, contact coordinates and permissions"
+    },
+    "/complaints/{complaintId}": {
+      "schema": "Complaint",
+      "description": "Complaints reported by students with live resolution status"
+    },
+    "/complaints/{complaintId}/statusHistory/{historyId}": {
+      "schema": "StatusHistory",
+      "description": "Granular chronological audit trail of changes for a specific complaint"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Real-time user alerts and workflow notifications"
+    },
+    "/hostels/{hostelId}": {
+      "schema": "Hostel",
+      "description": "Hostel block details and assigned wardens"
+    }
+  }
+}

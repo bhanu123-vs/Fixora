@@ -1,0 +1,6 @@
+{
+  "name": "Fixora - Campus & Hostel Issue Management",
+  "description": "Fixora is a centralized campus and hostel issue reporting and facility management platform. Report It. Track It. Fix It.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
