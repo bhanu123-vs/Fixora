@@ -13,8 +13,6 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import {
-  signInWithPopup,
-  GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -79,66 +77,6 @@ function normalizeUserProfile(profile: UserProfile): UserProfile {
 }
 
 // AUTHENTICATION FUNCTIONS
-
-export async function loginWithGoogle(): Promise<UserProfile> {
-  const provider = new GoogleAuthProvider();
-  try {
-    const cred = await signInWithPopup(auth, provider);
-    const user = cred.user;
-
-    // Check if user document already exists in Firestore
-    const userRef = doc(db, USERS_COLLECTION, user.uid);
-    let userSnap;
-    try {
-      userSnap = await getDoc(userRef);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.GET, `${USERS_COLLECTION}/${user.uid}`);
-    }
-
-    if (userSnap && userSnap.exists()) {
-      return normalizeUserProfile(userSnap.data() as UserProfile);
-    }
-
-    // Determine initial role: if runtime admin email, assign admin, else student
-    const isAdminEmail = user.email === 'bhanuvenkatanagesh@gmail.com';
-    const newProfile: UserProfile = {
-      id: user.uid,
-      uid: user.uid,
-      role: isAdminEmail ? 'admin' : 'student',
-      name: user.displayName || (isAdminEmail ? 'Admin User' : 'Campus Student'),
-      email: user.email || '',
-      avatar: user.photoURL || '',
-      phone: user.phoneNumber || '+91 98765 00000',
-      department: 'Computer Science & Engineering',
-      hostelBlock: 'LH-1 (Ladies Hostel Block 1)',
-      roomNumber: 'Room 302',
-      accountStatus: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...(isAdminEmail
-        ? {
-            adminId: 'ADM-FAC-001',
-            designation: 'Chief Campus Administrator',
-          }
-        : {
-            studentId: `STU-${new Date().getFullYear()}-001`,
-            yearOfStudy: '3rd Year (B.Tech)',
-            studentType: 'Hosteller',
-          }),
-    };
-
-    try {
-      await setDoc(userRef, cleanFirestoreData(newProfile));
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `${USERS_COLLECTION}/${user.uid}`);
-    }
-
-    return newProfile;
-  } catch (error) {
-    console.error('Google Sign-in failed', error);
-    throw error;
-  }
-}
 
 export async function registerWithEmail(
   email: string,

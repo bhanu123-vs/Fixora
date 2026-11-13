@@ -19,7 +19,6 @@ import {
   INITIAL_NOTIFICATIONS,
 } from '../data/mockData';
 import {
-  loginWithGoogle,
   registerWithEmail,
   loginWithEmail,
   logout as firebaseLogout,
@@ -56,7 +55,6 @@ interface AppContextType {
   notifications: NotificationItem[];
   setCurrentView: (view: string, complaintId?: string | null) => void;
   login: (role: UserRole, customData?: Partial<UserProfile>) => Promise<void>;
-  loginGoogle: () => Promise<void>;
   loginEmailPassword: (email: string, pass: string) => Promise<void>;
   registerEmailPassword: (
     email: string,
@@ -242,19 +240,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     role === 'admin' || role === 'warden' || role === 'maintenance_staff'
       ? 'admin-dashboard'
       : 'student-dashboard';
-
-  // Google Sign In
-  const loginGoogle = async () => {
-    try {
-      const profile = await loginWithGoogle();
-      setCurrentUser(profile);
-      setSelectedComplaintId(null);
-      setCurrentViewState(getHomeViewForRole(profile.role));
-    } catch (err) {
-      console.error('Login with Google error', err);
-      throw err;
-    }
-  };
 
   // Email / Password Login
   const loginEmailPassword = async (email: string, pass: string) => {
@@ -754,7 +739,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         notifications,
         setCurrentView,
         login,
-        loginGoogle,
         loginEmailPassword,
         registerEmailPassword,
         logout,

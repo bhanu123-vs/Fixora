@@ -659,7 +659,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               How do I use this prototype for demonstration?
             </h4>
             <p className="text-slate-600 leading-relaxed">
-              You can explore with 1-click demo accounts for Student, Warden, or Administrator, or sign in securely with Firebase Google Authentication.
+              You can explore with 1-click demo accounts for Student, Warden, or Administrator, or register and sign in securely with your Official College Mail and password via Firebase Authentication.
             </p>
           </div>
         </div>
