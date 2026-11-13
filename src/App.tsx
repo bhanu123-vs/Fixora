@@ -67,13 +67,30 @@ const MainApp: React.FC = () => {
         return <ProfileView />;
 
       default:
-        return currentUser?.role === 'admin' ? (
+        return currentUser?.role === 'admin' ||
+          currentUser?.role === 'warden' ||
+          currentUser?.role === 'maintenance_staff' ? (
           <AdminDashboard />
         ) : (
           <StudentDashboard />
         );
     }
   };
+
+  const isManagementRole =
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'warden' ||
+    currentUser?.role === 'maintenance_staff';
+
+  const roleDisplayName = !currentUser
+    ? 'Public'
+    : currentUser.role === 'admin'
+    ? 'Admin'
+    : currentUser.role === 'warden'
+    ? 'Warden'
+    : currentUser.role === 'maintenance_staff'
+    ? 'Staff'
+    : 'Student';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-red-100 selection:text-red-900 transition-colors duration-200">
@@ -108,20 +125,20 @@ const MainApp: React.FC = () => {
           <Sparkles className="w-3.5 h-3.5 text-red-400" />
           <span className="hidden sm:inline">Role Mode:</span>
           <strong className="text-white">
-            {currentUser ? (currentUser.role === 'admin' ? 'Admin' : 'Student') : 'Public'}
+            {roleDisplayName}
           </strong>
         </div>
 
         {currentUser ? (
           <button
             onClick={() =>
-              switchRole(currentUser.role === 'admin' ? 'student' : 'admin')
+              switchRole(isManagementRole ? 'student' : 'admin')
             }
             className="px-2.5 py-1 bg-red-700 hover:bg-red-600 text-white rounded-full font-semibold transition-colors flex items-center gap-1 shadow-xs"
             title="Switch between student and admin"
           >
             <ArrowRightLeft className="w-3 h-3" />
-            <span>Switch to {currentUser.role === 'admin' ? 'Student' : 'Admin'}</span>
+            <span>Switch to {isManagementRole ? 'Student' : 'Admin'}</span>
           </button>
         ) : (
           <button
@@ -146,7 +163,7 @@ const MainApp: React.FC = () => {
             if (!currentUser) {
               setCurrentView('landing');
             } else if (currentView === 'landing') {
-              setCurrentView(currentUser.role === 'admin' ? 'admin-dashboard' : 'student-dashboard');
+              setCurrentView(isManagementRole ? 'admin-dashboard' : 'student-dashboard');
             } else {
               setCurrentView('landing');
             }

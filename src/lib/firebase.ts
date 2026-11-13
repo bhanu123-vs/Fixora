@@ -82,9 +82,9 @@ export async function testConnection(): Promise<boolean> {
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.error('Please check your Firebase configuration or network.');
-    } else {
-      console.log('Firestore connected (test document accessed).');
+      return false;
     }
+    console.log('Firestore connected (test document accessed).');
     return true;
   }
 }

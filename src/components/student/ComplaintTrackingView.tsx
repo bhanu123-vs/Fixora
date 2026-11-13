@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { PriorityBadge } from '../common/PriorityBadge';
@@ -70,6 +70,14 @@ export const ComplaintTrackingView: React.FC = () => {
   const [reopenModalOpen, setReopenModalOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState('');
   const [confirmSuccess, setConfirmSuccess] = useState(false);
+
+  useEffect(() => {
+    setRating(5);
+    setFeedback('');
+    setReopenModalOpen(false);
+    setReopenReason('');
+    setConfirmSuccess(false);
+  }, [complaint?.id]);
 
   if (!complaint) {
     return (
@@ -510,7 +518,7 @@ export const ComplaintTrackingView: React.FC = () => {
                 <div className="space-y-1.5 text-xs text-slate-600 border-t border-slate-200/60 pt-3">
                   <div className="flex items-center gap-2">
                     <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-mono">{complaint.assignedStaffPhone || '+91 94140 00000'}</span>
+                    <span className="font-mono">{complaint.assignedStaffPhone || 'Contact via estate desk'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5 text-slate-400" />

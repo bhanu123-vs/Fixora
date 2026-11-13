@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { ASSETS } from '../../constants/assets';
+import { UserAvatar } from '../common/UserAvatar';
 import { StatusBadge } from '../common/StatusBadge';
 import { PriorityBadge } from '../common/PriorityBadge';
 import {
@@ -74,7 +75,7 @@ export const StudentDashboard: React.FC = () => {
             </h1>
 
             <p className="text-sm text-slate-300 max-w-xl">
-              Report campus and hostel facility issues, track real-time technician assignments across VIT-AP, and verify fixes.
+              Report campus, classroom, or hostel facility issues, track real-time technician assignments across VIT-AP, and verify fixes.
             </p>
           </div>
 
@@ -204,7 +205,7 @@ export const StudentDashboard: React.FC = () => {
                 <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm font-medium text-slate-700">No complaints reported yet</p>
                 <p className="text-xs text-slate-400 mt-1 mb-4">
-                  Have an issue in your hostel room, lab, or washroom? Report it in seconds.
+                  Have an issue in your hostel room, classroom, lab, washroom, or campus bus bay? Report it in seconds.
                 </p>
                 <button
                   onClick={() => setCurrentView('report-issue')}
@@ -273,15 +274,18 @@ export const StudentDashboard: React.FC = () => {
           {/* Student Profile Quick Card */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              Registered VIT-AP Residence
+              {currentUser?.studentType === 'Day Scholar' ||
+              currentUser?.hostelBlock?.includes('Day Scholar')
+                ? 'VIT-AP Student Status'
+                : 'Registered VIT-AP Residence'}
             </h3>
 
             <div className="flex items-center gap-3 mb-4">
-              <img
+              <UserAvatar
                 src={currentUser?.avatar}
-                alt={currentUser?.name}
-                referrerPolicy="no-referrer"
-                className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                name={currentUser?.name}
+                sizeClass="w-12 h-12"
+                textSizeClass="text-sm"
               />
               <div>
                 <h4 className="text-sm font-bold text-slate-900">{currentUser?.name}</h4>
@@ -290,16 +294,38 @@ export const StudentDashboard: React.FC = () => {
             </div>
 
             <div className="space-y-2 text-xs border-t border-slate-100 pt-3">
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500">Hostel Block:</span>
-                <span className="font-semibold text-slate-800 text-right">
-                  {currentUser?.hostelBlock || 'LH-1 (Ladies Hostel 1)'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500">Room Number:</span>
-                <span className="font-bold text-slate-900">{currentUser?.roomNumber || 'Room 302'}</span>
-              </div>
+              {currentUser?.studentType === 'Day Scholar' ||
+              currentUser?.hostelBlock?.includes('Day Scholar') ? (
+                <>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Student Category:</span>
+                    <span className="font-semibold text-red-700 text-right">
+                      Day Scholar (Commuter)
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Commute / Zone:</span>
+                    <span className="font-bold text-slate-900 text-right">
+                      {currentUser?.roomNumber && currentUser.roomNumber !== 'Day Scholar'
+                        ? currentUser.roomNumber
+                        : 'Off-Campus'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Hostel Block:</span>
+                    <span className="font-semibold text-slate-800 text-right">
+                      {currentUser?.hostelBlock || 'LH-1 (Ladies Hostel Block 1)'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Room Number:</span>
+                    <span className="font-bold text-slate-900">{currentUser?.roomNumber || 'Room 302'}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between py-1">
                 <span className="text-slate-500">Contact:</span>
                 <span className="font-mono text-slate-700">{currentUser?.phone}</span>

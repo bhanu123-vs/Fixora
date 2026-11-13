@@ -28,9 +28,12 @@ import {
   subscribeToNotifications,
   createComplaintInFirestore,
   updateComplaintStatusInFirestore,
+  updateComplaintPriorityInFirestore,
   assignStaffInFirestore,
   confirmResolutionInFirestore,
   reopenComplaintInFirestore,
+  markNotificationReadInFirestore,
+  markAllNotificationsReadInFirestore,
   ensureAdminUserRecord,
   ensureUserProfileDoc,
   isRegistrationInProgress,
@@ -51,7 +54,7 @@ interface AppContextType {
   complaints: Complaint[];
   staff: MaintenanceStaff[];
   notifications: NotificationItem[];
-  setCurrentView: (view: string, complaintId?: string) => void;
+  setCurrentView: (view: string, complaintId?: string | null) => void;
   login: (role: UserRole, customData?: Partial<UserProfile>) => Promise<void>;
   loginGoogle: () => Promise<void>;
   loginEmailPassword: (email: string, pass: string) => Promise<void>;
@@ -77,7 +80,7 @@ interface AppContextType {
     status: ComplaintStatus,
     remarks?: string
   ) => Promise<void>;
-  updateComplaintPriority: (complaintId: string, priority: PriorityLevel) => void;
+  updateComplaintPriority: (complaintId: string, priority: PriorityLevel) => Promise<void>;
   assignStaff: (complaintId: string, staffId: string) => Promise<void>;
   confirmResolution: (
     complaintId: string,
@@ -134,7 +137,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('fixora_current_user');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as UserProfile;
+        if (
+          parsed?.avatar &&
+          (parsed.avatar.includes('/src/assets/images/avatar_') ||
+            parsed.avatar.includes('avatar_student_lead_') ||
+            parsed.avatar.includes('avatar_maintenance_staff_'))
+        ) {
+          parsed.avatar = '';
+        }
+        return parsed;
       } catch (e) {
         console.error('Error parsing user', e);
       }
@@ -218,7 +230,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [currentUser, firebaseAuthUser]);
 
-  const setCurrentView = (view: string, complaintId?: string) => {
+  const setCurrentView = (view: string, complaintId?: string | null) => {
     setCurrentViewState(view);
     if (complaintId !== undefined) {
       setSelectedComplaintId(complaintId);
@@ -226,18 +238,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const getHomeViewForRole = (role?: UserRole) =>
+    role === 'admin' || role === 'warden' || role === 'maintenance_staff'
+      ? 'admin-dashboard'
+      : 'student-dashboard';
+
   // Google Sign In
   const loginGoogle = async () => {
     try {
       const profile = await loginWithGoogle();
       setCurrentUser(profile);
-      setCurrentViewState(
-        profile.role === 'admin'
-          ? 'admin-dashboard'
-          : profile.role === 'warden'
-          ? 'admin-dashboard'
-          : 'student-dashboard'
-      );
+      setSelectedComplaintId(null);
+      setCurrentViewState(getHomeViewForRole(profile.role));
     } catch (err) {
       console.error('Login with Google error', err);
       throw err;
@@ -249,11 +261,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const profile = await loginWithEmail(email, pass);
       setCurrentUser(profile);
-      setCurrentViewState(
-        profile.role === 'admin' || profile.role === 'warden'
-          ? 'admin-dashboard'
-          : 'student-dashboard'
-      );
+      setSelectedComplaintId(null);
+      setCurrentViewState(getHomeViewForRole(profile.role));
     } catch (err) {
       console.error('Login error', err);
       throw err;
@@ -269,11 +278,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const profile = await registerWithEmail(email, pass, profileData);
       setCurrentUser(profile);
-      setCurrentViewState(
-        profile.role === 'admin' || profile.role === 'warden'
-          ? 'admin-dashboard'
-          : 'student-dashboard'
-      );
+      setSelectedComplaintId(null);
+      setCurrentViewState(getHomeViewForRole(profile.role));
     } catch (err) {
       console.error('Registration error', err);
       throw err;
@@ -298,11 +304,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         role: 'warden',
         name: 'Prof. S. N. Joshi',
         email: 'warden.blocka@campus.edu',
-        avatar: '/src/assets/images/avatar_maintenance_staff_1794215794128.jpg',
+        avatar: '',
         phone: '+91 98220 55443',
         department: 'Hostel Administration',
-        assignedHostel: 'Hostel Block A (Girls Wing)',
-        assignedBlocks: 'Block A, Floors 1-4',
+        assignedHostel: 'LH-1 (Ladies Hostel Block 1)',
+        assignedBlocks: 'LH-1, Floors 1-5',
         accountStatus: 'active',
         createdAt: new Date().toISOString(),
         ...(customData || {}),
@@ -339,19 +345,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const registerStudent = (data: Partial<UserProfile>) => {
+    const isDayScholar = data.studentType === 'Day Scholar';
     const newStudent: UserProfile = {
       id: `usr_stu_${Date.now().toString().slice(-4)}`,
       uid: `usr_stu_${Date.now().toString().slice(-4)}`,
       role: 'student',
       name: data.name || 'New Student',
       email: data.email || 'student@campus.edu',
-      avatar: '/src/assets/images/avatar_student_lead_1794215793948.jpg',
+      avatar: data.avatar || '',
       phone: data.phone || '+91 98000 00000',
       department: data.department || 'Computer Science & Engineering',
       studentId: data.studentId || `STU-${new Date().getFullYear()}-001`,
       yearOfStudy: data.yearOfStudy || '1st Year',
-      hostelBlock: data.hostelBlock || 'Hostel Block A (Girls Wing)',
-      roomNumber: data.roomNumber || 'Room 101',
+      studentType: isDayScholar ? 'Day Scholar' : 'Hosteller',
+      hostelBlock: isDayScholar
+        ? 'Day Scholar (Off-Campus)'
+        : data.hostelBlock || 'LH-1 (Ladies Hostel Block 1)',
+      roomNumber: isDayScholar
+        ? data.roomNumber || 'Day Scholar'
+        : data.roomNumber || 'Room 101',
       accountStatus: 'active',
       createdAt: new Date().toISOString(),
     };
@@ -469,9 +481,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const updateComplaintPriority = (complaintId: string, priority: PriorityLevel) => {
+  const updateComplaintPriority = async (complaintId: string, priority: PriorityLevel) => {
+    const target = complaints.find((c) => c.id === complaintId);
+    if (!target) return;
+
+    const activeUser = currentUser || {
+      ...DEMO_ADMIN,
+      uid: 'usr_adm_001',
+    };
+
+    if (auth.currentUser) {
+      try {
+        await updateComplaintPriorityInFirestore(
+          complaintId,
+          priority,
+          activeUser,
+          target
+        );
+        return;
+      } catch (err) {
+        console.error('Firestore priority update error', err);
+      }
+    }
+
+    const now = new Date().toISOString();
     setComplaints((prev) =>
-      prev.map((c) => (c.id === complaintId ? { ...c, priority } : c))
+      prev.map((c) =>
+        c.id === complaintId
+          ? {
+              ...c,
+              priority,
+              updatedAt: now,
+              timeline: [
+                ...c.timeline,
+                {
+                  id: `t-${Date.now()}`,
+                  timestamp: now,
+                  status: c.status,
+                  title: `Priority updated to ${priority}`,
+                  description: `Changed priority from ${c.priority} to ${priority} by ${activeUser.name}`,
+                  actorName: activeUser.name,
+                  actorRole: (activeUser.role === 'maintenance_staff' ? 'staff' : activeUser.role) as
+                    | 'student'
+                    | 'admin'
+                    | 'staff'
+                    | 'warden',
+                },
+              ],
+            }
+          : c
+      )
     );
   };
 
@@ -628,12 +687,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markNotificationRead = (id: string) => {
+    const target = notifications.find((n) => n.id === id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
+    if (auth.currentUser && target) {
+      const isAdmin =
+        auth.currentUser.email === 'bhanuvenkatanagesh@gmail.com' ||
+        currentUser?.role === 'admin';
+      const canUpdate = isAdmin || target.recipientUid === auth.currentUser.uid;
+      markNotificationReadInFirestore(id, canUpdate).catch((err) => {
+        console.error('Failed to mark notification read in Firestore:', err);
+      });
+    }
   };
 
   const markAllNotificationsRead = (role?: UserRole) => {
+    const matching = notifications.filter(
+      (n) => !n.isRead && (!role || n.recipientRole === role || n.recipientRole === 'all')
+    );
     setNotifications((prev) =>
       prev.map((n) => {
         if (!role || n.recipientRole === role || n.recipientRole === 'all') {
@@ -642,6 +714,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return n;
       })
     );
+    if (auth.currentUser && matching.length > 0) {
+      markAllNotificationsReadInFirestore(matching, currentUser).catch((err) => {
+        console.error('Failed to mark all notifications read in Firestore:', err);
+      });
+    }
   };
 
   const updateProfile = (updated: Partial<UserProfile>) => {

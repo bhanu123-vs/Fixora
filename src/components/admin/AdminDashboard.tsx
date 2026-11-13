@@ -49,7 +49,7 @@ export const AdminDashboard: React.FC = () => {
   const resolutionRate =
     totalComplaints > 0
       ? Math.round((resolvedComplaints / totalComplaints) * 100)
-      : 100;
+      : 0;
 
   const formatDate = (isoStr: string) => {
     try {
@@ -254,25 +254,31 @@ export const AdminDashboard: React.FC = () => {
               Complaints Volume by Category
             </h3>
             <div className="space-y-3">
-              {sortedCategories.map(([catName, count]) => {
-                const pct = Math.round((count / totalComplaints) * 100);
-                return (
-                  <div key={catName} className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-slate-700">{catName}</span>
-                      <span className="font-mono tabular-nums text-slate-500">
-                        {count} ({pct}%)
-                      </span>
+              {sortedCategories.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4 text-center">
+                  No complaints recorded yet. Category distribution will appear here automatically.
+                </p>
+              ) : (
+                sortedCategories.map(([catName, count]) => {
+                  const pct = Math.round((count / totalComplaints) * 100);
+                  return (
+                    <div key={catName} className="space-y-1">
+                      <div className="flex justify-between text-xs font-medium">
+                        <span className="text-slate-700">{catName}</span>
+                        <span className="font-mono tabular-nums text-slate-500">
+                          {count} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-red-700 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-700 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -289,24 +295,30 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {sortedBuildings.map(([bldgName, count], idx) => (
-                <div
-                  key={bldgName}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 text-xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-mono text-[11px] font-bold text-slate-400 w-4">
-                      0{idx + 1}
-                    </span>
-                    <span className="font-medium text-slate-800 truncate">
-                      {bldgName}
+              {sortedBuildings.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4 text-center">
+                  No building hotspots recorded yet.
+                </p>
+              ) : (
+                sortedBuildings.map(([bldgName, count], idx) => (
+                  <div
+                    key={bldgName}
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 text-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="font-mono text-[11px] font-bold text-slate-400 w-4">
+                        0{idx + 1}
+                      </span>
+                      <span className="font-medium text-slate-800 truncate">
+                        {bldgName}
+                      </span>
+                    </div>
+                    <span className="font-mono tabular-nums font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-100 shrink-0">
+                      {count} tickets
                     </span>
                   </div>
-                  <span className="font-mono tabular-nums font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-100 shrink-0">
-                    {count} tickets
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 

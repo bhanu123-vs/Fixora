@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ASSETS } from '../../constants/assets';
+import { UserAvatar } from './UserAvatar';
 import {
   Bell,
   ArrowRightLeft,
@@ -42,16 +43,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Unread notifications count
   const userRole = currentUser?.role || 'student';
+  const currentUid = currentUser?.uid || currentUser?.id;
+  const isManagementUser =
+    userRole === 'admin' || userRole === 'warden' || userRole === 'maintenance_staff';
   const unreadCount = notifications.filter((n) => {
     if (n.isRead) return false;
     if (n.recipientRole === 'all') return true;
-    if (n.recipientRole === userRole) {
-      if (userRole === 'student' && n.recipientUserId) {
-        return n.recipientUserId === currentUser?.id || n.recipientUserId === 'usr_stu_101';
-      }
-      return true;
+    const recipient = n.recipientUid || n.recipientUserId;
+    if (recipient && currentUid) {
+      return recipient === currentUid;
     }
-    return false;
+    return n.recipientRole === userRole;
   }).length;
 
   const isLanding = currentView === 'landing' && !currentUser;
@@ -141,10 +143,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cloud Firestore connected pill */}
             <span
               className="hidden lg:inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200"
-              title="Connected to Cloud Firestore"
+              title={isFirebaseConnected ? 'Connected to Cloud Firestore' : 'Firestore connection offline'}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Cloud Active</span>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isFirebaseConnected ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}
+              />
+              <span>{isFirebaseConnected ? 'Cloud Active' : 'Offline Mode'}</span>
             </span>
           </div>
 
@@ -313,14 +319,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {/* Instant Role Switcher for Evaluators */}
                 <button
                   onClick={() =>
-                    switchRole(currentUser?.role === 'admin' ? 'student' : 'admin')
+                    switchRole(isManagementUser ? 'student' : 'admin')
                   }
                   title="Switch between Student and Admin perspective"
                   className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5 text-slate-500" />
                   <span>
-                    Switch to {currentUser?.role === 'admin' ? 'Student' : 'Admin'}
+                    Switch to {isManagementUser ? 'Student' : 'Admin'}
                   </span>
                 </button>
 
@@ -340,13 +346,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="relative">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-slate-200 transition-all"
+                    className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-slate-200 dark:hover:ring-slate-700 transition-all"
                   >
-                    <img
+                    <UserAvatar
                       src={currentUser?.avatar}
-                      alt={currentUser?.name}
-                      referrerPolicy="no-referrer"
-                      className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                      name={currentUser?.name}
+                      sizeClass="w-7 h-7"
+                      textSizeClass="text-[11px]"
                     />
                   </button>
 
@@ -364,7 +370,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => {
                           setCurrentView(
-                            currentUser?.role === 'admin' ? 'admin-profile' : 'student-profile'
+                            isManagementUser ? 'admin-profile' : 'student-profile'
                           );
                           setProfileDropdownOpen(false);
                         }}
@@ -377,14 +383,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => {
                           switchRole(
-                            currentUser?.role === 'admin' ? 'student' : 'admin'
+                            isManagementUser ? 'student' : 'admin'
                           );
                           setProfileDropdownOpen(false);
                         }}
                         className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
                         <ArrowRightLeft className="w-3.5 h-3.5 text-slate-400" />
-                        Switch to {currentUser?.role === 'admin' ? 'Student' : 'Admin'} Mode
+                        Switch to {isManagementUser ? 'Student' : 'Admin'} Mode
                       </button>
 
                       <button
@@ -485,7 +491,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Profile
                 </button>
               </>
-            ) : currentUser?.role === 'admin' ? (
+            ) : isManagementUser ? (
               <>
                 <button
                   onClick={() => {
@@ -494,7 +500,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-md"
                 >
-                  Admin Overview
+                  Dashboard Overview
                 </button>
                 <button
                   onClick={() => {
@@ -528,12 +534,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser && (
               <button
                 onClick={() => {
-                  switchRole(currentUser.role === 'admin' ? 'student' : 'admin');
+                  switchRole(isManagementUser ? 'student' : 'admin');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 rounded-md"
               >
-                Switch to {currentUser.role === 'admin' ? 'Student' : 'Admin'} Mode
+                Switch to {isManagementUser ? 'Student' : 'Admin'} Mode
               </button>
             )}
           </div>

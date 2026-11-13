@@ -77,7 +77,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
-                Say goodbye to unread WhatsApp messages and forgotten paper registers. Fixora empowers VIT-AP students across LH-1, LH-2, MH-1 through MH-5, and Academic Blocks to report problems with photos, track technicians in real-time, and verify fixes before tickets close.
+                Say goodbye to unread WhatsApp messages and forgotten paper registers. Fixora empowers VIT-AP hostellers across LH-1 to LH-3, MH-1 to MH-7, and Day Scholars across all Academic Blocks and campus facilities to report problems with photos, track technicians in real-time, and verify fixes before tickets close.
               </p>
 
               {/* CTAs in VIT-AP Red and Black */}
@@ -162,7 +162,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
                       <span className="text-xs font-black text-slate-950 block">
                         {complaints.filter((c) => c.status === 'Resolved').length}
                       </span>
-                      <span className="text-[10px] text-slate-500">Hostel Fixes</span>
+                      <span className="text-[10px] text-slate-500">Campus Fixes</span>
                     </div>
                     <div>
                       <span className="text-xs font-black text-red-700 block">
@@ -232,9 +232,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               <img
                 src={ASSETS.VIT_AP_NIGHT}
                 alt="VIT-AP Mahatma Gandhi Block Illumination"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] h-[133.34%] -rotate-90 object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute top-2.5 left-2.5 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded">
+              <div className="absolute top-2.5 left-2.5 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
                 Mahatma Gandhi Block (MGB)
               </div>
             </div>
@@ -281,7 +281,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
             <div className="p-4 space-y-1">
               <h3 className="text-sm font-bold text-slate-900">Hostels & Dining Blocks</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Covering LH-1, LH-2, MH-1 through MH-5, dining complexes, and high-speed Wi-Fi network hubs.
+                Covering LH-1 to LH-3, MH-1 through MH-7, dining complexes, transport bays, and campus Wi-Fi network hubs.
               </p>
             </div>
           </div>
@@ -295,7 +295,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
             The Campus Reality
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-950">
-            Why Traditional Hostel Complaint Registers Fail
+            Why Traditional Campus & Hostel Registers Fail
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
             Students face recurring infrastructure roadblocks, while maintenance administrators struggle with chaotic WhatsApp records.
@@ -416,7 +416,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               }`}
             >
               <UserCheck className="w-4 h-4" />
-              <span>For Students & Residents</span>
+              <span>For Hostellers & Day Scholars</span>
             </button>
             <button
               onClick={() => setActiveRoleTab('admin')}
@@ -441,7 +441,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               </div>
               <h4 className="text-sm font-bold text-slate-950">Rapid Photo Reporting</h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Snap photos from your phone. Category and hostel presets (LH-1, LH-2, MH-1 through MH-5) make logging take under 45 seconds.
+                Snap photos from your phone. Category and block presets (LH-1 to LH-3, MH-1 to MH-7, Academic Blocks & Bus Bay) make logging take under 45 seconds.
               </p>
             </div>
 
@@ -520,41 +520,52 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {complaints.slice(0, 3).map((c) => (
-            <div
-              key={c.id}
-              onClick={() => setCurrentView('track-complaint', c.id)}
-              className="bg-white rounded-xl border border-slate-200 p-5 hover:border-red-400 hover:shadow-2xs transition-all cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-mono font-bold text-slate-500">{c.id}</span>
-                  <span className="font-semibold text-red-800 bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                    {c.category}
+        {complaints.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-2">
+            <p className="text-sm font-semibold text-slate-800">
+              Live Queue Connected · 0 Active Tickets
+            </p>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              All mock sample tickets have been cleared for live production use. Sign in to report a campus issue and watch updates stream in real time.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {complaints.slice(0, 3).map((c) => (
+              <div
+                key={c.id}
+                onClick={() => setCurrentView('track-complaint', c.id)}
+                className="bg-white rounded-xl border border-slate-200 p-5 hover:border-red-400 hover:shadow-2xs transition-all cursor-pointer group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="font-mono font-bold text-slate-500">{c.id}</span>
+                    <span className="font-semibold text-red-800 bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                      {c.category}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-950 group-hover:text-red-700 transition-colors line-clamp-1">
+                    {c.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                    {c.description}
+                  </p>
+                  <div className="mt-2 text-[11px] font-medium text-slate-600 flex items-center gap-1">
+                    <Building className="w-3 h-3 text-slate-400" />
+                    <span>{c.building}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-400 font-mono text-[11px]">{c.status}</span>
+                  <span className="text-red-700 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                    Track progress <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-slate-950 group-hover:text-red-700 transition-colors line-clamp-1">
-                  {c.title}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                  {c.description}
-                </p>
-                <div className="mt-2 text-[11px] font-medium text-slate-600 flex items-center gap-1">
-                  <Building className="w-3 h-3 text-slate-400" />
-                  <span>{c.building}</span>
-                </div>
               </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-mono text-[11px]">{c.status}</span>
-                <span className="text-red-700 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                  Track progress <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 7. TESTIMONIALS */}
@@ -630,7 +641,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               Which buildings at VIT-AP are covered by Fixora?
             </h4>
             <p className="text-slate-600 leading-relaxed">
-              All facilities across the campus: Ladies Hostels (LH-1, LH-2), Men's Hostels (MH-1 through MH-5), Mahatma Gandhi Block (Central Block), Academic Block 1 (AB-1), Academic Block 2 (AB-2), Central Library, Dining Halls, and Student Activity Center.
+              All facilities across campus for both Hostellers and Day Scholars: Ladies Hostels (LH-1, LH-2, LH-3), Men's Hostels (MH-1 through MH-7), Mahatma Gandhi Block (Central Block), Academic Block 1 (AB-1), Academic Block 2 (AB-2), Central Library, Dining Halls, Student Activity Center (SAC), and Campus Bus Bay & Parking.
             </p>
           </div>
 

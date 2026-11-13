@@ -30,15 +30,7 @@ import {
   PriorityLevel,
   NotificationItem,
   MaintenanceStaff,
-  StatusHistoryRecord,
 } from '../types';
-import {
-  INITIAL_COMPLAINTS,
-  INITIAL_STAFF,
-  INITIAL_NOTIFICATIONS,
-  DEMO_STUDENT,
-  DEMO_ADMIN,
-} from '../data/mockData';
 
 const USERS_COLLECTION = 'users';
 const COMPLAINTS_COLLECTION = 'complaints';
@@ -67,6 +59,25 @@ export function cleanFirestoreData<T>(data: T): T {
   return data;
 }
 
+function sanitizeUserAvatar(avatar?: string): string {
+  if (!avatar) return '';
+  if (
+    avatar.includes('/src/assets/images/avatar_') ||
+    avatar.includes('avatar_student_lead_') ||
+    avatar.includes('avatar_maintenance_staff_')
+  ) {
+    return '';
+  }
+  return avatar;
+}
+
+function normalizeUserProfile(profile: UserProfile): UserProfile {
+  return {
+    ...profile,
+    avatar: sanitizeUserAvatar(profile.avatar),
+  };
+}
+
 // AUTHENTICATION FUNCTIONS
 
 export async function loginWithGoogle(): Promise<UserProfile> {
@@ -85,7 +96,7 @@ export async function loginWithGoogle(): Promise<UserProfile> {
     }
 
     if (userSnap && userSnap.exists()) {
-      return userSnap.data() as UserProfile;
+      return normalizeUserProfile(userSnap.data() as UserProfile);
     }
 
     // Determine initial role: if runtime admin email, assign admin, else student
@@ -96,7 +107,7 @@ export async function loginWithGoogle(): Promise<UserProfile> {
       role: isAdminEmail ? 'admin' : 'student',
       name: user.displayName || (isAdminEmail ? 'Admin User' : 'Campus Student'),
       email: user.email || '',
-      avatar: user.photoURL || '/src/assets/images/avatar_student_lead_1794215793948.jpg',
+      avatar: user.photoURL || '',
       phone: user.phoneNumber || '+91 98765 00000',
       department: 'Computer Science & Engineering',
       hostelBlock: 'LH-1 (Ladies Hostel Block 1)',
@@ -112,6 +123,7 @@ export async function loginWithGoogle(): Promise<UserProfile> {
         : {
             studentId: `STU-${new Date().getFullYear()}-001`,
             yearOfStudy: '3rd Year (B.Tech)',
+            studentType: 'Hosteller',
           }),
     };
 
@@ -144,18 +156,24 @@ export async function registerWithEmail(
       ? profileData.role
       : 'student';
 
+    const isDayScholar =
+      assignedRole === 'student' && profileData.studentType === 'Day Scholar';
+
     const newProfile: UserProfile = {
       id: user.uid,
       uid: user.uid,
       role: assignedRole,
       name: profileData.name || 'New User',
       email: user.email || email,
-      avatar:
-        profileData.avatar || '/src/assets/images/avatar_student_lead_1794215793948.jpg',
+      avatar: sanitizeUserAvatar(profileData.avatar),
       phone: profileData.phone || '+91 98765 43210',
       department: profileData.department || 'General Academic',
-      hostelBlock: profileData.hostelBlock || 'LH-1 (Ladies Hostel Block 1)',
-      roomNumber: profileData.roomNumber || 'Room 101',
+      hostelBlock: isDayScholar
+        ? 'Day Scholar (Off-Campus)'
+        : profileData.hostelBlock || 'LH-1 (Ladies Hostel Block 1)',
+      roomNumber: isDayScholar
+        ? profileData.roomNumber?.trim() || 'Day Scholar'
+        : profileData.roomNumber?.trim() || 'Room 101',
       accountStatus: 'active',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -163,6 +181,7 @@ export async function registerWithEmail(
         ? {
             studentId: profileData.studentId?.trim() || `STU-${Date.now().toString().slice(-4)}`,
             yearOfStudy: profileData.yearOfStudy || '1st Year (B.Tech)',
+            studentType: isDayScholar ? 'Day Scholar' : 'Hosteller',
           }
         : {}),
       ...(assignedRole === 'admin'
@@ -216,7 +235,7 @@ export async function loginWithEmail(
     }
 
     if (userSnap && userSnap.exists()) {
-      return userSnap.data() as UserProfile;
+      return normalizeUserProfile(userSnap.data() as UserProfile);
     }
 
     return await ensureUserProfileDoc(user);
@@ -237,7 +256,7 @@ export async function ensureUserProfileDoc(user: FirebaseUser): Promise<UserProf
     role: isAdminEmail ? 'admin' : 'student',
     name: user.displayName || (user.email ? user.email.split('@')[0] : 'Fixora User'),
     email: user.email || '',
-    avatar: user.photoURL || '/src/assets/images/avatar_student_lead_1794215793948.jpg',
+    avatar: user.photoURL || '',
     phone: user.phoneNumber || '+91 98765 00000',
     department: 'Computer Science & Engineering',
     hostelBlock: 'LH-1 (Ladies Hostel Block 1)',
@@ -253,6 +272,7 @@ export async function ensureUserProfileDoc(user: FirebaseUser): Promise<UserProf
       : {
           studentId: `VITAP-${user.uid.slice(0, 6).toUpperCase()}`,
           yearOfStudy: '1st Year (B.Tech)',
+          studentType: 'Hosteller',
         }),
   };
 
@@ -295,7 +315,7 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
   try {
     const snap = await getDoc(doc(db, USERS_COLLECTION, uid));
     if (snap.exists()) {
-      return snap.data() as UserProfile;
+      return normalizeUserProfile(snap.data() as UserProfile);
     }
     return null;
   } catch (error) {
@@ -352,6 +372,9 @@ export function subscribeToComplaints(
           id: docSnap.id,
         });
       });
+      items.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
       callback(items);
     },
     (error) => {
@@ -427,9 +450,11 @@ export async function createComplaintInFirestore(
   currentUser: UserProfile
 ): Promise<string> {
   const now = new Date().toISOString();
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const nowMs = Date.now();
+  const randomSuffix = Math.floor(10000 + Math.random() * 90000);
   const complaintId = `FIX-${new Date().getFullYear()}-${randomSuffix}`;
   const path = `${COMPLAINTS_COLLECTION}/${complaintId}`;
+  const studentUid = currentUser.uid || currentUser.id || auth.currentUser?.uid || '';
 
   const newComplaint: Complaint = {
     id: complaintId,
@@ -442,7 +467,7 @@ export async function createComplaintInFirestore(
     priority: data.priority,
     status: 'Submitted',
     studentId: currentUser.studentId || 'STU-GEN',
-    studentUid: currentUser.uid || currentUser.id || auth.currentUser?.uid || '',
+    studentUid,
     studentName: currentUser.name,
     studentEmail: currentUser.email,
     studentPhone: currentUser.phone,
@@ -450,7 +475,7 @@ export async function createComplaintInFirestore(
     updatedAt: now,
     timeline: [
       {
-        id: `t-${Date.now()}`,
+        id: `t-${nowMs}`,
         timestamp: now,
         status: 'Submitted',
         title: 'Complaint Submitted',
@@ -468,21 +493,22 @@ export async function createComplaintInFirestore(
     );
 
     // Write audit subcollection doc
+    const histId = `hist_${nowMs}`;
     const historyRef = doc(
       db,
       COMPLAINTS_COLLECTION,
       complaintId,
       'statusHistory',
-      `hist_${Date.now()}`
+      histId
     );
     await setDoc(
       historyRef,
       cleanFirestoreData({
-        id: `hist_${Date.now()}`,
+        id: histId,
         complaintId,
         previousStatus: '',
         newStatus: 'Submitted',
-        updatedByUid: currentUser.uid || currentUser.id,
+        updatedByUid: studentUid,
         updatedByName: currentUser.name,
         updatedByRole: currentUser.role,
         remarks: 'Initial complaint registration',
@@ -491,12 +517,13 @@ export async function createComplaintInFirestore(
     );
 
     // Notify Student
+    const studentNotifId = `notif_st_${nowMs}`;
     await setDoc(
-      doc(db, NOTIFICATIONS_COLLECTION, `notif_st_${Date.now()}`),
+      doc(db, NOTIFICATIONS_COLLECTION, studentNotifId),
       cleanFirestoreData({
-        id: `notif_st_${Date.now()}`,
+        id: studentNotifId,
         recipientRole: 'student',
-        recipientUid: currentUser.uid || currentUser.id,
+        recipientUid: studentUid,
         complaintId,
         title: 'Complaint Registered in Cloud Firestore',
         message: `Your complaint "${data.title}" was logged. Tracking ID: ${complaintId}.`,
@@ -507,10 +534,11 @@ export async function createComplaintInFirestore(
     );
 
     // Notify Admin & Warden
+    const adminNotifId = `notif_adm_${nowMs}`;
     await setDoc(
-      doc(db, NOTIFICATIONS_COLLECTION, `notif_adm_${Date.now()}`),
+      doc(db, NOTIFICATIONS_COLLECTION, adminNotifId),
       cleanFirestoreData({
-        id: `notif_adm_${Date.now()}`,
+        id: adminNotifId,
         recipientRole: data.priority === 'Urgent' ? 'all' : 'admin',
         complaintId,
         title:
@@ -539,19 +567,24 @@ export async function updateComplaintStatusInFirestore(
   existingComplaint: Complaint
 ): Promise<void> {
   const now = new Date().toISOString();
+  const nowMs = Date.now();
   const path = `${COMPLAINTS_COLLECTION}/${complaintId}`;
 
   const updatedTimeline = [
     ...(existingComplaint.timeline || []),
     {
-      id: `t-${Date.now()}`,
+      id: `t-${nowMs}`,
       timestamp: now,
       status: newStatus,
       title: `Status updated to ${newStatus}`,
       description:
         remarks || `Status updated to ${newStatus} by ${currentUser.name}`,
       actorName: currentUser.name,
-      actorRole: currentUser.role as 'student' | 'admin' | 'staff' | 'warden',
+      actorRole: (currentUser.role === 'maintenance_staff' ? 'staff' : currentUser.role) as
+        | 'student'
+        | 'admin'
+        | 'staff'
+        | 'warden',
     },
   ];
 
@@ -574,17 +607,18 @@ export async function updateComplaintStatusInFirestore(
     );
 
     // Audit status history subcollection
+    const histId = `hist_${nowMs}`;
     const historyRef = doc(
       db,
       COMPLAINTS_COLLECTION,
       complaintId,
       'statusHistory',
-      `hist_${Date.now()}`
+      histId
     );
     await setDoc(
       historyRef,
       cleanFirestoreData({
-        id: `hist_${Date.now()}`,
+        id: histId,
         complaintId,
         previousStatus: existingComplaint.status,
         newStatus,
@@ -597,10 +631,11 @@ export async function updateComplaintStatusInFirestore(
     );
 
     // Notify student
+    const notifId = `notif_st_${nowMs}`;
     await setDoc(
-      doc(db, NOTIFICATIONS_COLLECTION, `notif_st_${Date.now()}`),
+      doc(db, NOTIFICATIONS_COLLECTION, notifId),
       cleanFirestoreData({
-        id: `notif_st_${Date.now()}`,
+        id: notifId,
         recipientRole: 'student',
         recipientUid: existingComplaint.studentUid,
         complaintId,
@@ -622,6 +657,47 @@ export async function updateComplaintStatusInFirestore(
   }
 }
 
+export async function updateComplaintPriorityInFirestore(
+  complaintId: string,
+  priority: PriorityLevel,
+  currentUser: UserProfile,
+  existingComplaint: Complaint
+): Promise<void> {
+  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const path = `${COMPLAINTS_COLLECTION}/${complaintId}`;
+
+  const updatedTimeline = [
+    ...(existingComplaint.timeline || []),
+    {
+      id: `t-${nowMs}`,
+      timestamp: now,
+      status: existingComplaint.status,
+      title: `Priority updated to ${priority}`,
+      description: `Changed priority from ${existingComplaint.priority} to ${priority} by ${currentUser.name}`,
+      actorName: currentUser.name,
+      actorRole: (currentUser.role === 'maintenance_staff' ? 'staff' : currentUser.role) as
+        | 'student'
+        | 'admin'
+        | 'staff'
+        | 'warden',
+    },
+  ];
+
+  try {
+    await updateDoc(
+      doc(db, COMPLAINTS_COLLECTION, complaintId),
+      cleanFirestoreData({
+        priority,
+        updatedAt: now,
+        timeline: updatedTimeline,
+      })
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
 export async function assignStaffInFirestore(
   complaintId: string,
   staffMember: MaintenanceStaff,
@@ -629,18 +705,19 @@ export async function assignStaffInFirestore(
   existingComplaint: Complaint
 ): Promise<void> {
   const now = new Date().toISOString();
+  const nowMs = Date.now();
   const path = `${COMPLAINTS_COLLECTION}/${complaintId}`;
 
   const updatedTimeline = [
     ...(existingComplaint.timeline || []),
     {
-      id: `t-${Date.now()}`,
+      id: `t-${nowMs}`,
       timestamp: now,
       status: 'Assigned' as ComplaintStatus,
       title: `Assigned to ${staffMember.name}`,
       description: `Dispatched ${staffMember.name} (${staffMember.specialty}). Phone: ${staffMember.phone}`,
       actorName: currentUser.name,
-      actorRole: currentUser.role as 'admin' | 'warden',
+      actorRole: (currentUser.role === 'warden' ? 'warden' : 'admin') as 'admin' | 'warden',
     },
   ];
 
@@ -660,10 +737,11 @@ export async function assignStaffInFirestore(
     );
 
     // Notify student
+    const notifId = `notif_as_${nowMs}`;
     await setDoc(
-      doc(db, NOTIFICATIONS_COLLECTION, `notif_as_${Date.now()}`),
+      doc(db, NOTIFICATIONS_COLLECTION, notifId),
       cleanFirestoreData({
-        id: `notif_as_${Date.now()}`,
+        id: notifId,
         recipientRole: 'student',
         recipientUid: existingComplaint.studentUid,
         complaintId,
@@ -687,12 +765,13 @@ export async function confirmResolutionInFirestore(
   existingComplaint: Complaint
 ): Promise<void> {
   const now = new Date().toISOString();
+  const nowMs = Date.now();
   const path = `${COMPLAINTS_COLLECTION}/${complaintId}`;
 
   const updatedTimeline = [
     ...(existingComplaint.timeline || []),
     {
-      id: `t-${Date.now()}`,
+      id: `t-${nowMs}`,
       timestamp: now,
       status: 'Resolved' as ComplaintStatus,
       title: `Resolution Confirmed by Student (${rating} ★)`,
@@ -706,6 +785,7 @@ export async function confirmResolutionInFirestore(
     await updateDoc(
       doc(db, COMPLAINTS_COLLECTION, complaintId),
       cleanFirestoreData({
+        status: 'Resolved',
         resolutionConfirmedByStudent: true,
         studentRating: rating,
         studentFeedback: feedback,
@@ -715,10 +795,11 @@ export async function confirmResolutionInFirestore(
     );
 
     // Notify admin
+    const notifId = `notif_conf_${nowMs}`;
     await setDoc(
-      doc(db, NOTIFICATIONS_COLLECTION, `notif_conf_${Date.now()}`),
+      doc(db, NOTIFICATIONS_COLLECTION, notifId),
       cleanFirestoreData({
-        id: `notif_conf_${Date.now()}`,
+        id: notifId,
         recipientRole: 'admin',
         complaintId,
         title: 'Student Confirmed Resolution',
@@ -740,12 +821,13 @@ export async function reopenComplaintInFirestore(
   existingComplaint: Complaint
 ): Promise<void> {
   const now = new Date().toISOString();
+  const nowMs = Date.now();
   const path = `${COMPLAINTS_COLLECTION}/${complaintId}`;
 
   const updatedTimeline = [
     ...(existingComplaint.timeline || []),
     {
-      id: `t-${Date.now()}`,
+      id: `t-${nowMs}`,
       timestamp: now,
       status: 'Reopened' as ComplaintStatus,
       title: 'Complaint Reopened by Student',
@@ -768,10 +850,11 @@ export async function reopenComplaintInFirestore(
     );
 
     // Notify admin
+    const notifId = `notif_reop_${nowMs}`;
     await setDoc(
-      doc(db, NOTIFICATIONS_COLLECTION, `notif_reop_${Date.now()}`),
+      doc(db, NOTIFICATIONS_COLLECTION, notifId),
       cleanFirestoreData({
-        id: `notif_reop_${Date.now()}`,
+        id: notifId,
         recipientRole: 'admin',
         complaintId,
         title: '⚠️ Complaint Reopened by Student',
@@ -784,6 +867,43 @@ export async function reopenComplaintInFirestore(
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
+}
+
+export async function markNotificationReadInFirestore(
+  notificationId: string,
+  canUpdateInFirestore: boolean
+): Promise<void> {
+  if (!auth.currentUser || !canUpdateInFirestore) return;
+  const path = `${NOTIFICATIONS_COLLECTION}/${notificationId}`;
+  try {
+    await updateDoc(doc(db, NOTIFICATIONS_COLLECTION, notificationId), {
+      isRead: true,
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function markAllNotificationsReadInFirestore(
+  notificationsToMark: NotificationItem[],
+  currentUser: UserProfile | null
+): Promise<void> {
+  if (!auth.currentUser || notificationsToMark.length === 0) return;
+  const isAdmin =
+    auth.currentUser.email === 'bhanuvenkatanagesh@gmail.com' ||
+    currentUser?.role === 'admin';
+  const eligible = notificationsToMark.filter(
+    (n) => !n.isRead && (isAdmin || n.recipientUid === auth.currentUser?.uid)
+  );
+  await Promise.all(
+    eligible.map((n) =>
+      updateDoc(doc(db, NOTIFICATIONS_COLLECTION, n.id), { isRead: true }).catch(
+        (error) => {
+          handleFirestoreError(error, OperationType.UPDATE, `${NOTIFICATIONS_COLLECTION}/${n.id}`);
+        }
+      )
+    )
+  );
 }
 
 // FIREBASE STORAGE IMAGE UPLOAD
@@ -819,19 +939,23 @@ export async function ensureAdminUserRecord(): Promise<void> {
     const userRef = doc(db, USERS_COLLECTION, auth.currentUser.uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
-      await setDoc(userRef, {
-        id: auth.currentUser.uid,
-        uid: auth.currentUser.uid,
-        role: 'admin',
-        name: auth.currentUser.displayName || 'Bhanu (Chief Administrator)',
-        email: auth.currentUser.email,
-        department: 'VIT-AP Campus Estate & Facilities Office',
-        adminId: 'VITAP-ADMIN-001',
-        designation: 'Director of Campus Infrastructure',
-        accountStatus: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      await setDoc(
+        userRef,
+        cleanFirestoreData({
+          id: auth.currentUser.uid,
+          uid: auth.currentUser.uid,
+          role: 'admin',
+          name: auth.currentUser.displayName || 'Bhanu (Chief Administrator)',
+          email: auth.currentUser.email,
+          avatar: auth.currentUser.photoURL || '',
+          department: 'VIT-AP Campus Estate & Facilities Office',
+          adminId: 'VITAP-ADMIN-001',
+          designation: 'Director of Campus Infrastructure',
+          accountStatus: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      );
       console.log('Verified super admin record in Firestore.');
     }
   } catch (error) {

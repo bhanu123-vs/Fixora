@@ -32,15 +32,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
 
   // Filter relevant notifications for current role
   const role = currentUser?.role || 'student';
+  const currentUid = currentUser?.uid || currentUser?.id;
   const userNotifications = notifications.filter((n) => {
     if (n.recipientRole === 'all') return true;
-    if (n.recipientRole === role) {
-      if (role === 'student' && n.recipientUserId) {
-        return n.recipientUserId === currentUser?.id || n.recipientUserId === 'usr_stu_101';
-      }
-      return true;
+    const recipient = n.recipientUid || n.recipientUserId;
+    if (recipient && currentUid) {
+      return recipient === currentUid;
     }
-    return false;
+    return n.recipientRole === role;
   });
 
   const filteredNotifications =
@@ -82,7 +81,11 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
   const handleNotificationClick = (complaintId?: string, notifId?: string) => {
     if (notifId) markNotificationRead(notifId);
     if (complaintId) {
-      if (currentUser?.role === 'admin') {
+      if (
+        currentUser?.role === 'admin' ||
+        currentUser?.role === 'warden' ||
+        currentUser?.role === 'maintenance_staff'
+      ) {
         setCurrentView('admin-complaints', complaintId);
       } else {
         setCurrentView('track-complaint', complaintId);

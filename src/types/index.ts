@@ -1,4 +1,5 @@
 export type UserRole = 'student' | 'warden' | 'admin' | 'maintenance_staff';
+export type StudentType = 'Hosteller' | 'Day Scholar';
 
 export interface UserProfile {
   id: string;
@@ -11,6 +12,7 @@ export interface UserProfile {
   department: string;
   studentId?: string;
   yearOfStudy?: string;
+  studentType?: StudentType;
   hostelBlock?: string;
   hostel?: string;
   roomNumber?: string;

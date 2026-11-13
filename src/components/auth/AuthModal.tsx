@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { resetPassword } from '../../services/firebaseService';
-import { CAMPUS_BUILDINGS } from '../../data/mockData';
+import {
+  CAMPUS_BUILDINGS,
+  LADIES_HOSTELS,
+  MENS_HOSTELS,
+  ACADEMIC_AND_CAMPUS_BLOCKS,
+} from '../../data/mockData';
 import { ASSETS } from '../../constants/assets';
-import { UserRole } from '../../types';
+import { UserRole, StudentType } from '../../types';
 import {
   X,
   GraduationCap,
@@ -62,10 +67,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [regStudentId, setRegStudentId] = useState('');
   const [regDept, setRegDept] = useState('Computer Science & Engineering');
   const [regYear, setRegYear] = useState('2nd Year (B.Tech)');
+  const [regStudentType, setRegStudentType] = useState<StudentType>('Hosteller');
   const [regHostel, setRegHostel] = useState(CAMPUS_BUILDINGS[0]);
   const [regRoom, setRegRoom] = useState('Room 214');
+  const [regCommuteRoute, setRegCommuteRoute] = useState('');
   const [regPhone, setRegPhone] = useState('+91 98765 00000');
   const [regSpecialty, setRegSpecialty] = useState('Electrician');
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedRole(initialRole === 'admin' ? 'student' : initialRole);
+      setAuthError('');
+      setUnauthorizedDomain(null);
+      setResetSent(false);
+    }
+  }, [isOpen, initialRole]);
 
   if (!isOpen) return null;
 
@@ -165,6 +181,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsLoading(true);
     try {
+      const isDayScholar = selectedRole === 'student' && regStudentType === 'Day Scholar';
       await registerEmailPassword(regEmail.trim(), regPassword, {
         role: selectedRole,
         name: regName.trim(),
@@ -173,10 +190,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ? {
               studentId: regStudentId.trim() || undefined,
               yearOfStudy: regYear,
+              studentType: regStudentType,
             }
           : {}),
-        hostelBlock: regHostel,
-        roomNumber: regRoom,
+        hostelBlock: isDayScholar ? 'Day Scholar (Off-Campus)' : regHostel,
+        roomNumber: isDayScholar
+          ? regCommuteRoute.trim() || 'Day Scholar'
+          : regRoom,
         phone: regPhone,
         ...(selectedRole === 'warden' ? { assignedHostel: regHostel } : {}),
         ...(selectedRole === 'maintenance_staff' ? { specialty: regSpecialty } : {}),
@@ -253,7 +273,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span>Continue with Google (@vitap.ac.in)</span>
+          <span>Continue with Google (Official College Mail)</span>
         </button>
 
         <div className="relative flex py-1.5 items-center mb-4">
@@ -423,7 +443,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Assigned: LH-1 & LH-2 Ladies Hostels
+                    Assigned: LH-1 to LH-3 Ladies Hostels
                   </p>
                 </div>
               </div>
@@ -466,14 +486,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleCustomLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Institutional Email (@vitap.ac.in / @vitapstudent.ac.in)
+                Official College Mail
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="email"
                   required
-                  placeholder="name.22bce1084@vitapstudent.ac.in"
+                  placeholder="Enter your official college mail"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
@@ -557,21 +577,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Email *
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Official College Mail *
                 </label>
                 <input
                   type="email"
                   required
-                  placeholder="name.22bce1084@vitap.ac.in"
+                  placeholder="Enter your official college mail"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Password (min. 6 chars) *
                 </label>
                 <input
@@ -580,56 +600,148 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="••••••••"
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 dark:text-white"
                 />
               </div>
             </div>
 
             {selectedRole === 'student' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Student ID (Reg. No.)
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Residence / Student Type *
                   </label>
-                  <input
-                    type="text"
-                    placeholder="22BCE1084"
-                    value={regStudentId}
-                    onChange={(e) => setRegStudentId(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg font-mono focus:ring-2 focus:ring-red-600"
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRegStudentType('Hosteller')}
+                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-colors ${
+                        regStudentType === 'Hosteller'
+                          ? 'bg-red-700 text-white border-red-700'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      Hosteller (LH / MH)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRegStudentType('Day Scholar')}
+                      className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-colors ${
+                        regStudentType === 'Day Scholar'
+                          ? 'bg-red-700 text-white border-red-700'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      Day Scholar (Commuter)
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Room Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Room 214"
-                    value={regRoom}
-                    onChange={(e) => setRegRoom(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-600"
-                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Student ID (Reg. No.)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 24BCE1042"
+                      value={regStudentId}
+                      onChange={(e) => setRegStudentId(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono focus:ring-2 focus:ring-red-600 dark:text-white"
+                    />
+                  </div>
+                  {regStudentType === 'Hosteller' ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Room Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Room 214"
+                        value={regRoom}
+                        onChange={(e) => setRegRoom(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-red-600 dark:text-white"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Commute / Bus Route (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Vijayawada / Bus Route 4"
+                        value={regCommuteRoute}
+                        onChange={(e) => setRegCommuteRoute(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-red-600 dark:text-white"
+                      />
+                    </div>
+                  )}
                 </div>
+              </>
+            )}
+
+            {selectedRole === 'maintenance_staff' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Specialty / Trade *
+                </label>
+                <select
+                  value={regSpecialty}
+                  onChange={(e) => setRegSpecialty(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-red-600 dark:text-white"
+                >
+                  <option value="Electrician">Electrician</option>
+                  <option value="Plumber">Plumber</option>
+                  <option value="Carpenter">Carpenter</option>
+                  <option value="HVAC / Fan">HVAC / Fan</option>
+                  <option value="Network Engineer">Network Engineer</option>
+                  <option value="Sanitation Supervisor">Sanitation Supervisor</option>
+                  <option value="General Maintenance">General Maintenance</option>
+                </select>
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Hostel / Residence Block
-              </label>
-              <select
-                value={regHostel}
-                onChange={(e) => setRegHostel(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-600"
-              >
-                {CAMPUS_BUILDINGS.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {(selectedRole !== 'student' || regStudentType === 'Hosteller') && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {selectedRole === 'warden'
+                    ? 'Assigned Hostel Block'
+                    : selectedRole === 'maintenance_staff'
+                    ? 'Primary Campus Zone / Block'
+                    : 'Hostel Block *'}
+                </label>
+                <select
+                  value={regHostel}
+                  onChange={(e) => setRegHostel(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-red-600 dark:text-white"
+                >
+                  <optgroup label="Ladies Hostels (LH-1 to LH-3)">
+                    {LADIES_HOSTELS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Men's Hostels (MH-1 to MH-7)">
+                    {MENS_HOSTELS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {selectedRole !== 'student' && (
+                    <optgroup label="Academic & Campus Facilities">
+                      {ACADEMIC_AND_CAMPUS_BLOCKS.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">

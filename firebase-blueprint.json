@@ -13,6 +13,7 @@
         "department": { "type": "string", "maxLength": 100 },
         "studentId": { "type": "string", "maxLength": 50 },
         "yearOfStudy": { "type": "string", "maxLength": 50 },
+        "studentType": { "type": "string", "enum": ["Hosteller", "Day Scholar"] },
         "hostel": { "type": "string", "maxLength": 100 },
         "roomNumber": { "type": "string", "maxLength": 50 },
         "designation": { "type": "string", "maxLength": 100 },

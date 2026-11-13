@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { IssueCategory, PriorityLevel } from '../../types';
-import { CAMPUS_BUILDINGS } from '../../data/mockData';
+import {
+  CAMPUS_BUILDINGS,
+  LADIES_HOSTELS,
+  MENS_HOSTELS,
+  ACADEMIC_AND_CAMPUS_BLOCKS,
+} from '../../data/mockData';
 import {
   Upload,
   X,
@@ -33,13 +38,23 @@ import { uploadComplaintImageToStorage } from '../../services/firebaseService';
 export const ReportIssueView: React.FC = () => {
   const { currentUser, submitComplaint, setCurrentView } = useApp();
 
+  const isDayScholar =
+    currentUser?.studentType === 'Day Scholar' ||
+    Boolean(currentUser?.hostelBlock?.includes('Day Scholar'));
+
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<IssueCategory>('Wi-Fi / Internet');
+  const [category, setCategory] = useState<IssueCategory>(
+    isDayScholar ? 'Classroom Infrastructure' : 'Wi-Fi / Internet'
+  );
   const [building, setBuilding] = useState(
-    currentUser?.hostelBlock || CAMPUS_BUILDINGS[0]
+    isDayScholar
+      ? ACADEMIC_AND_CAMPUS_BLOCKS[0]
+      : currentUser?.hostelBlock && CAMPUS_BUILDINGS.includes(currentUser.hostelBlock)
+      ? currentUser.hostelBlock
+      : CAMPUS_BUILDINGS[0]
   );
   const [specificLocation, setSpecificLocation] = useState(
-    currentUser?.roomNumber || ''
+    isDayScholar ? '' : currentUser?.roomNumber || ''
   );
   const [priority, setPriority] = useState<PriorityLevel>('Medium');
   const [description, setDescription] = useState('');
@@ -49,6 +64,18 @@ export const ReportIssueView: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    if (isDayScholar) {
+      setBuilding((prev) =>
+        LADIES_HOSTELS.includes(prev) || MENS_HOSTELS.includes(prev)
+          ? ACADEMIC_AND_CAMPUS_BLOCKS[0]
+          : prev
+      );
+      setSpecificLocation((prev) => (prev === 'Day Scholar' ? '' : prev));
+    }
+  }, [currentUser, isDayScholar]);
 
   // Handle genuine file upload to Firebase Storage
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +99,7 @@ export const ReportIssueView: React.FC = () => {
     } finally {
       setIsUploadingImage(false);
       setUploadProgress('');
+      e.target.value = '';
     }
   };
 
@@ -240,7 +268,7 @@ export const ReportIssueView: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-800 mb-1.5">
-                Campus Building / Hostel *
+                Campus Building / Hostel / Facility *
               </label>
               <div className="relative">
                 <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -249,11 +277,27 @@ export const ReportIssueView: React.FC = () => {
                   onChange={(e) => setBuilding(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white transition-all"
                 >
-                  {CAMPUS_BUILDINGS.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
+                  <optgroup label="Academic, Common & Day-Scholar Facilities">
+                    {ACADEMIC_AND_CAMPUS_BLOCKS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Ladies Hostels (LH-1 to LH-3)">
+                    {LADIES_HOSTELS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Men's Hostels (MH-1 to MH-7)">
+                    {MENS_HOSTELS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -267,7 +311,7 @@ export const ReportIssueView: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Room 302, 3rd Floor East Wing or Classroom 401"
+                  placeholder="e.g. Room 302, AB-1 Classroom 401, Central Library, or Bus Bay"
                   value={specificLocation}
                   onChange={(e) => setSpecificLocation(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white transition-all"
@@ -386,8 +430,12 @@ export const ReportIssueView: React.FC = () => {
           {/* Student Profile Stamp */}
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
             <div>
-              Reporting as: <strong className="text-slate-800">{currentUser?.name || 'Student'}</strong> (
-              <span className="font-mono text-red-700 font-semibold">{currentUser?.studentId || '22BCE1084'}</span>)
+              Reporting as: <strong className="text-slate-800">{currentUser?.name || 'Student'}</strong>
+              {currentUser?.studentId && (
+                <>
+                  {' '}(<span className="font-mono text-red-700 font-semibold">{currentUser.studentId}</span>)
+                </>
+              )}
             </div>
             <span className="text-[11px] text-slate-400">
               Auto-timestamps on submission
@@ -405,7 +453,7 @@ export const ReportIssueView: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingImage}
               className="px-6 py-2.5 bg-red-700 hover:bg-red-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center gap-2 disabled:opacity-50"
             >
               {isSubmitting ? (

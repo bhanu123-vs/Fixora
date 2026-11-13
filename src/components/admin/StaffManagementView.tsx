@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { UserAvatar } from '../common/UserAvatar';
 import { MaintenanceStaff } from '../../types';
 import {
   Users,
@@ -39,7 +40,7 @@ export const StaffManagementView: React.FC = () => {
       phone: phone.trim(),
       email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@campus.edu`,
       shift,
-      avatar: '/src/assets/images/avatar_maintenance_staff_1794215794128.jpg',
+      avatar: '',
     });
 
     setAddModalOpen(false);
@@ -98,10 +99,11 @@ export const StaffManagementView: React.FC = () => {
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
-                  <img
+                  <UserAvatar
                     src={member.avatar}
-                    alt={member.name}
-                    className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                    name={member.name}
+                    sizeClass="w-12 h-12"
+                    textSizeClass="text-sm"
                   />
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">{member.name}</h3>

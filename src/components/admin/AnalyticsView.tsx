@@ -23,7 +23,7 @@ export const AnalyticsView: React.FC = () => {
   const unreviewed = complaints.filter((c) => c.status === 'Submitted').length;
   const reopened = complaints.filter((c) => c.status === 'Reopened').length;
 
-  const resolutionRate = total > 0 ? ((resolved / total) * 100).toFixed(1) : '100';
+  const resolutionRate = total > 0 ? ((resolved / total) * 100).toFixed(1) : '0';
 
   // Category counts
   const catMap: Record<string, number> = {};
@@ -38,18 +38,18 @@ export const AnalyticsView: React.FC = () => {
     prioMap[c.priority] = (prioMap[c.priority] || 0) + 1;
   });
 
-  // Calculate simulated avg resolution time from resolved complaints
+  // Calculate avg resolution time from resolved complaints
   let totalHours = 0;
   let resolvedCount = 0;
   complaints.forEach((c) => {
     if (c.status === 'Resolved' && c.resolvedAt) {
       const diffMs = new Date(c.resolvedAt).getTime() - new Date(c.createdAt).getTime();
-      const diffHrs = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+      const diffHrs = Math.max(0.1, diffMs / (1000 * 60 * 60));
       totalHours += diffHrs;
       resolvedCount++;
     }
   });
-  const avgHours = resolvedCount > 0 ? (totalHours / resolvedCount).toFixed(1) : '4.6';
+  const avgHours = resolvedCount > 0 ? (totalHours / resolvedCount).toFixed(1) : '0.0';
 
   // Ratings calculation
   let totalStars = 0;
@@ -60,7 +60,7 @@ export const AnalyticsView: React.FC = () => {
       ratedCount++;
     }
   });
-  const avgRating = ratedCount > 0 ? (totalStars / ratedCount).toFixed(1) : '4.9';
+  const avgRating = ratedCount > 0 ? (totalStars / ratedCount).toFixed(1) : '0.0';
 
   return (
     <div className="space-y-6">

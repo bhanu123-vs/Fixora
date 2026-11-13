@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../common/StatusBadge';
 import { PriorityBadge } from '../common/PriorityBadge';
@@ -55,6 +55,21 @@ export const AdminComplaintsView: React.FC = () => {
   const [statusToUpdate, setStatusToUpdate] = useState<ComplaintStatus>('In Progress');
   const [adminRemark, setAdminRemark] = useState('');
   const [newPriority, setNewPriority] = useState<PriorityLevel>('High');
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // Sync drawer with external navigation (e.g. from AdminDashboard or NotificationDrawer)
+  useEffect(() => {
+    if (selectedComplaintId) {
+      const target = complaints.find((c) => c.id === selectedComplaintId);
+      if (target) {
+        setActiveComplaint(target);
+        setSelectedStaffId(target.assignedStaffId || '');
+        setStatusToUpdate(target.status);
+        setNewPriority(target.priority);
+        setAdminRemark('');
+      }
+    }
+  }, [selectedComplaintId, complaints]);
 
   // Keep active complaint in sync with main state
   const currentComplaint = activeComplaint
@@ -105,6 +120,15 @@ export const AdminComplaintsView: React.FC = () => {
     setStatusToUpdate(complaint.status);
     setNewPriority(complaint.priority);
     setAdminRemark('');
+    setActionNotice(null);
+  };
+
+  const handleCloseDetail = () => {
+    setActiveComplaint(null);
+    setActionNotice(null);
+    if (selectedComplaintId) {
+      setCurrentView('admin-complaints', null);
+    }
   };
 
   const handleAssignStaff = async (e: React.FormEvent) => {
@@ -112,6 +136,7 @@ export const AdminComplaintsView: React.FC = () => {
     if (!currentComplaint || !selectedStaffId) return;
     try {
       await assignStaff(currentComplaint.id, selectedStaffId);
+      setActionNotice('Maintenance staff assigned and student notified.');
     } catch (err) {
       console.error('Assign staff error', err);
     }
@@ -123,15 +148,21 @@ export const AdminComplaintsView: React.FC = () => {
     try {
       await updateComplaintStatus(currentComplaint.id, statusToUpdate, adminRemark.trim());
       setAdminRemark('');
+      setActionNotice(`Status updated to ${statusToUpdate}.`);
     } catch (err) {
       console.error('Update status error', err);
     }
   };
 
-  const handlePriorityChange = (e: React.FormEvent) => {
+  const handlePriorityChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentComplaint) return;
-    updateComplaintPriority(currentComplaint.id, newPriority);
+    try {
+      await updateComplaintPriority(currentComplaint.id, newPriority);
+      setActionNotice(`Priority updated to ${newPriority}.`);
+    } catch (err) {
+      console.error('Update priority error', err);
+    }
   };
 
   return (
@@ -364,7 +395,7 @@ export const AdminComplaintsView: React.FC = () => {
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div
             className="absolute inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity"
-            onClick={() => setActiveComplaint(null)}
+            onClick={handleCloseDetail}
           />
 
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
@@ -385,7 +416,7 @@ export const AdminComplaintsView: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setActiveComplaint(null)}
+                  onClick={handleCloseDetail}
                   className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
                 >
                   <X className="w-5 h-5" />
@@ -394,6 +425,12 @@ export const AdminComplaintsView: React.FC = () => {
 
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {actionNotice && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{actionNotice}</span>
+                  </div>
+                )}
                 {/* Reopened Alert */}
                 {currentComplaint.status === 'Reopened' && (
                   <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">

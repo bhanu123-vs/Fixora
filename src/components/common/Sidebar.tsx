@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { UserAvatar } from './UserAvatar';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -47,16 +48,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNotifications }) => {
 
   // Counts
   const userRole = currentUser.role;
+  const currentUid = currentUser.uid || currentUser.id;
   const unreadCount = notifications.filter((n) => {
     if (n.isRead) return false;
     if (n.recipientRole === 'all') return true;
-    if (n.recipientRole === userRole) {
-      if (userRole === 'student' && n.recipientUserId) {
-        return n.recipientUserId === currentUser.id || n.recipientUserId === 'usr_stu_101';
-      }
-      return true;
+    const recipient = n.recipientUid || n.recipientUserId;
+    if (recipient && currentUid) {
+      return recipient === currentUid;
     }
-    return false;
+    return n.recipientRole === userRole;
   }).length;
 
   const urgentAdminCount = complaints.filter(
@@ -80,7 +80,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNotifications }) => {
       label: 'My Complaints',
       icon: ListTodo,
       badge: complaints.filter(
-        (c) => c.studentId === currentUser.studentId || c.studentId === 'STU-2023-CS-084'
+        (c) =>
+          (currentUid && c.studentUid === currentUid) ||
+          (currentUser.studentId && c.studentId === currentUser.studentId) ||
+          (currentUser.email && c.studentEmail === currentUser.email)
       ).length,
     },
     {
@@ -148,11 +151,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNotifications }) => {
       {/* Role Banner / Profile Quick Card */}
       <div className="p-4 border-b border-slate-100 bg-slate-50/60">
         <div className="flex items-center gap-3">
-          <img
+          <UserAvatar
             src={currentUser.avatar}
-            alt={currentUser.name}
-            referrerPolicy="no-referrer"
-            className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-xs"
+            name={currentUser.name}
+            sizeClass="w-10 h-10"
+            textSizeClass="text-xs"
+            className="shadow-xs"
           />
           <div className="min-w-0 flex-1">
             <h4 className="text-xs font-semibold text-slate-900 truncate">
