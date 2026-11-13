@@ -280,17 +280,17 @@ export const ComplaintTrackingView: React.FC = () => {
 
         {/* RESOLUTION VERIFICATION BOX (Section 11 requirement) */}
         {complaint.status === 'Resolved' && (
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-slate-50 border border-emerald-200 space-y-4">
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-slate-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-200 dark:border-emerald-800/60 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-emerald-950">
+                  <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
                     Technician Resolution Summary
                   </h3>
-                  <p className="text-xs text-emerald-800">
+                  <p className="text-xs text-emerald-800 dark:text-emerald-400">
                     Marked resolved on {formatDate(complaint.resolvedAt || complaint.updatedAt)}
                   </p>
                 </div>

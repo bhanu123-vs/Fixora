@@ -1,11 +1,179 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #0f172a;
     background-color: #f8fafc;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
+
+  html.dark body {
+    color: #f1f5f9;
+    background-color: #020617;
+  }
+}
+
+/* Global Dark Mode Semantic Surface & Typography Coverage */
+html.dark .bg-white:not([class*="dark:bg-"]) {
+  background-color: #0f172a;
+}
+
+html.dark .bg-white\/95:not([class*="dark:bg-"]),
+html.dark .bg-white\/90:not([class*="dark:bg-"]),
+html.dark .bg-white\/80:not([class*="dark:bg-"]) {
+  background-color: rgba(15, 23, 42, 0.92);
+}
+
+html.dark .bg-slate-50:not([class*="dark:bg-"]) {
+  background-color: #0b1120;
+}
+
+html.dark .bg-slate-50\/60:not([class*="dark:bg-"]),
+html.dark .bg-slate-50\/50:not([class*="dark:bg-"]) {
+  background-color: rgba(15, 23, 42, 0.7);
+}
+
+html.dark .bg-slate-100:not([class*="dark:bg-"]) {
+  background-color: #1e293b;
+}
+
+html.dark .bg-slate-200:not([class*="dark:bg-"]) {
+  background-color: #334155;
+}
+
+html.dark .hover\:bg-slate-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-slate-100:hover:not([class*="dark:hover:bg-"]) {
+  background-color: #1e293b;
+}
+
+html.dark .hover\:bg-slate-200:hover:not([class*="dark:hover:bg-"]) {
+  background-color: #334155;
+}
+
+html.dark .focus\:bg-white:focus:not([class*="dark:focus:bg-"]) {
+  background-color: #1e293b;
+}
+
+/* Text colors in Dark Mode */
+html.dark .text-slate-950:not([class*="dark:text-"]),
+html.dark .text-slate-900:not([class*="dark:text-"]) {
+  color: #f8fafc;
+}
+
+html.dark .text-slate-800:not([class*="dark:text-"]) {
+  color: #e2e8f0;
+}
+
+html.dark .text-slate-700:not([class*="dark:text-"]) {
+  color: #cbd5e1;
+}
+
+html.dark .text-slate-600:not([class*="dark:text-"]) {
+  color: #94a3b8;
+}
+
+html.dark .text-slate-500:not([class*="dark:text-"]) {
+  color: #94a3b8;
+}
+
+html.dark .text-red-950:not([class*="dark:text-"]),
+html.dark .text-red-900:not([class*="dark:text-"]),
+html.dark .text-red-800:not([class*="dark:text-"]),
+html.dark .text-red-700:not([class*="dark:text-"]) {
+  color: #f87171;
+}
+
+html.dark .hover\:text-slate-900:hover:not([class*="dark:hover:text-"]) {
+  color: #ffffff;
+}
+
+/* Borders & Dividers in Dark Mode */
+html.dark .border-slate-100:not([class*="dark:border-"]),
+html.dark .border-slate-200:not([class*="dark:border-"]),
+html.dark .border-slate-200\/60:not([class*="dark:border-"]) {
+  border-color: #1e293b;
+}
+
+html.dark .border-slate-300:not([class*="dark:border-"]) {
+  border-color: #334155;
+}
+
+html.dark .divide-slate-100 > :not(:last-child),
+html.dark .divide-slate-200 > :not(:last-child) {
+  border-color: #1e293b;
+}
+
+/* Soft semantic tinted containers in Dark Mode */
+html.dark .bg-red-50:not([class*="dark:bg-"]),
+html.dark .bg-red-50\/70:not([class*="dark:bg-"]),
+html.dark .bg-red-50\/40:not([class*="dark:bg-"]),
+html.dark .bg-red-50\/30:not([class*="dark:bg-"]) {
+  background-color: rgba(185, 28, 28, 0.16);
+}
+
+html.dark .bg-red-100:not([class*="dark:bg-"]) {
+  background-color: rgba(185, 28, 28, 0.25);
+}
+
+html.dark .border-red-100:not([class*="dark:border-"]),
+html.dark .border-red-200:not([class*="dark:border-"]) {
+  border-color: rgba(185, 28, 28, 0.35);
+}
+
+html.dark .bg-amber-50:not([class*="dark:bg-"]) {
+  background-color: rgba(217, 119, 6, 0.15);
+}
+html.dark .border-amber-200:not([class*="dark:border-"]) {
+  border-color: rgba(217, 119, 6, 0.35);
+}
+html.dark .text-amber-900:not([class*="dark:text-"]),
+html.dark .text-amber-800:not([class*="dark:text-"]),
+html.dark .text-amber-700:not([class*="dark:text-"]) {
+  color: #fbbf24;
+}
+
+html.dark .bg-emerald-50:not([class*="dark:bg-"]) {
+  background-color: rgba(5, 150, 105, 0.15);
+}
+html.dark .border-emerald-200:not([class*="dark:border-"]) {
+  border-color: rgba(5, 150, 105, 0.35);
+}
+html.dark .text-emerald-800:not([class*="dark:text-"]),
+html.dark .text-emerald-700:not([class*="dark:text-"]) {
+  color: #34d399;
+}
+
+html.dark .bg-rose-50:not([class*="dark:bg-"]),
+html.dark .bg-rose-50\/30:not([class*="dark:bg-"]) {
+  background-color: rgba(225, 29, 72, 0.16);
+}
+html.dark .border-rose-200:not([class*="dark:border-"]) {
+  border-color: rgba(225, 29, 72, 0.35);
+}
+html.dark .text-rose-800:not([class*="dark:text-"]),
+html.dark .text-rose-700:not([class*="dark:text-"]) {
+  color: #fb7185;
+}
+
+html.dark .bg-indigo-50:not([class*="dark:bg-"]) {
+  background-color: rgba(79, 70, 229, 0.16);
+}
+html.dark .text-indigo-800:not([class*="dark:text-"]) {
+  color: #a5b4fc;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color: #f8fafc;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b;
 }
 
 /* Custom scrollbars for high-density tables and modal lists */
@@ -22,4 +190,11 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }

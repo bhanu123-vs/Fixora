@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { resetPassword } from '../../services/firebaseService';
 import { CAMPUS_BUILDINGS } from '../../data/mockData';
 import { ASSETS } from '../../constants/assets';
 import { UserRole } from '../../types';
@@ -18,6 +19,9 @@ import {
   Wrench,
   CheckCircle2,
   AlertCircle,
+  Copy,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -43,6 +47,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [copiedDomain, setCopiedDomain] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
   // Custom login state
@@ -63,14 +69,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
+  const currentHostname =
+    typeof window !== 'undefined' ? window.location.hostname : '';
+
+  const handleCopyDomain = () => {
+    if (!currentHostname) return;
+    navigator.clipboard?.writeText(currentHostname);
+    setCopiedDomain(true);
+    setTimeout(() => setCopiedDomain(false), 2000);
+  };
+
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setAuthError('');
+    setUnauthorizedDomain(null);
+    setResetSent(false);
     try {
       await loginGoogle();
       onClose();
     } catch (err: any) {
-      setAuthError(err.message || 'Google sign-in failed');
+      if (
+        err?.code === 'auth/unauthorized-domain' ||
+        (typeof err?.message === 'string' && err.message.includes('auth/unauthorized-domain'))
+      ) {
+        setUnauthorizedDomain(currentHostname || 'this preview domain');
+        setTab('login');
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setAuthError('Google sign-in popup was closed before completion.');
+      } else {
+        setAuthError(err?.message || 'Google sign-in failed');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setAuthError('');
+    setResetSent(false);
+    if (!loginEmail.trim()) {
+      setAuthError('Enter your email address above first to receive a password reset link.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await resetPassword(loginEmail.trim());
+      setResetSent(true);
+    } catch (err: any) {
+      setAuthError(err?.message || 'Could not send password reset email.');
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +127,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (!loginEmail || !loginPassword) return;
     setIsLoading(true);
     setAuthError('');
+    setUnauthorizedDomain(null);
+    setResetSent(false);
     try {
       await loginEmailPassword(loginEmail.trim(), loginPassword);
       onClose();
@@ -91,7 +139,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         err.code === 'auth/wrong-password'
       ) {
         setAuthError(
-          'Account not found. Please click "Register" tab to create your credentials or use 1-Click Demo.'
+          'Invalid email or password. Click "Register" tab to create a new account or reset your password.'
         );
       } else {
         setAuthError(err.message || 'Login failed. Please check credentials.');
@@ -104,6 +152,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleCustomRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
+    setUnauthorizedDomain(null);
+    setResetSent(false);
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
       setAuthError('Please fill in name, email, and password');
       return;
@@ -119,17 +169,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         role: selectedRole,
         name: regName.trim(),
         department: regDept,
-        studentId: selectedRole === 'student' ? regStudentId : undefined,
-        yearOfStudy: selectedRole === 'student' ? regYear : undefined,
+        ...(selectedRole === 'student'
+          ? {
+              studentId: regStudentId.trim() || undefined,
+              yearOfStudy: regYear,
+            }
+          : {}),
         hostelBlock: regHostel,
         roomNumber: regRoom,
         phone: regPhone,
-        specialty: selectedRole === 'maintenance_staff' ? regSpecialty : undefined,
+        ...(selectedRole === 'warden' ? { assignedHostel: regHostel } : {}),
+        ...(selectedRole === 'maintenance_staff' ? { specialty: regSpecialty } : {}),
       });
       onClose();
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setAuthError('This email is already registered. Please sign in instead.');
+        setAuthError('This email is already registered. Please switch to "Sign In" tab.');
       } else {
         setAuthError(err.message || 'Registration failed');
       }
@@ -146,11 +201,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 z-10">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 z-10">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+          className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -209,10 +264,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="flex-grow border-t border-slate-200"></div>
         </div>
 
+        {unauthorizedDomain && (
+          <div className="mb-4 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 text-amber-900 dark:text-amber-200 text-xs rounded-xl space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1 flex-1 min-w-0">
+                <p className="font-bold">Google Popup Domain Not Yet Authorized</p>
+                <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                  Add this host under <strong>Firebase Console → Authentication → Settings → Authorized domains</strong>, or sign in right now with Email & Password below.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
+              <code className="text-[11px] font-mono truncate flex-1 text-slate-800 dark:text-slate-200">
+                {unauthorizedDomain}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyDomain}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 text-amber-900 dark:text-amber-200 shrink-0"
+              >
+                {copiedDomain ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {copiedDomain ? 'Copied' : 'Copy'}
+              </button>
+              <a
+                href="https://console.firebase.google.com/project/capacity-connect-f929b/authentication/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded bg-red-700 hover:bg-red-800 text-white shrink-0"
+              >
+                Console <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+        )}
+
         {authError && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
+          <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs rounded-xl flex items-start gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{authError}</span>
+          </div>
+        )}
+
+        {resetSent && (
+          <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs rounded-xl flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Password reset email sent! Check your inbox for reset instructions.</span>
           </div>
         )}
 
@@ -368,26 +465,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {tab === 'login' && (
           <form onSubmit={handleCustomLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Institutional Email (@vitap.ac.in)
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Institutional Email (@vitap.ac.in / @vitapstudent.ac.in)
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="email"
                   required
-                  placeholder="name.22bce1084@vitap.ac.in"
+                  placeholder="name.22bce1084@vitapstudent.ac.in"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={isLoading}
+                  className="text-[11px] font-semibold text-red-700 dark:text-red-400 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
@@ -396,7 +503,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white dark:focus:bg-slate-800 dark:text-white"
                 />
               </div>
             </div>

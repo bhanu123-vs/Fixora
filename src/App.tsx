@@ -19,12 +19,12 @@ import { AdminComplaintsView } from './components/admin/AdminComplaintsView';
 import { StaffManagementView } from './components/admin/StaffManagementView';
 import { AnalyticsView } from './components/admin/AnalyticsView';
 import { ProfileView } from './components/profile/ProfileView';
-import { ArrowRightLeft, Sparkles, Home } from 'lucide-react';
+import { ArrowRightLeft, Sparkles, Home, Sun, Moon } from 'lucide-react';
 
 import { UserRole } from './types';
 
 const MainApp: React.FC = () => {
-  const { currentUser, currentView, setCurrentView, switchRole } = useApp();
+  const { currentUser, currentView, setCurrentView, switchRole, theme, toggleTheme } = useApp();
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authInitialRole, setAuthInitialRole] = useState<UserRole>('student');
@@ -76,7 +76,7 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased selection:bg-red-100 selection:text-red-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-red-100 selection:text-red-900 transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar
         onOpenAuth={handleOpenAuth}
@@ -131,6 +131,15 @@ const MainApp: React.FC = () => {
             Launch Demo
           </button>
         )}
+
+        <button
+          onClick={toggleTheme}
+          className="p-1 hover:bg-slate-800 rounded-full text-slate-300 hover:text-white transition-colors"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle color mode"
+        >
+          {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5" />}
+        </button>
 
         <button
           onClick={() => {

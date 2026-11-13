@@ -92,7 +92,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
 
                 <button
                   onClick={() => onOpenAuth('admin')}
-                  className="px-6 py-3.5 bg-slate-950 hover:bg-slate-900 text-white font-bold text-sm rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="px-6 py-3.5 bg-slate-950 dark:bg-slate-800 hover:bg-slate-900 dark:hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-all shadow-sm border border-transparent dark:border-slate-700 flex items-center justify-center gap-2"
                 >
                   <ShieldCheck className="w-4 h-4 text-red-400" />
                   <span>Warden & Admin Portal</span>
@@ -103,7 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               <div className="pt-3 max-w-lg">
                 <form
                   onSubmit={handleQuickTrack}
-                  className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100 transition-all"
+                  className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-2 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100 dark:focus-within:ring-red-900/40 transition-all"
                 >
                   <Search className="w-4 h-4 text-slate-400 ml-2" />
                   <input
@@ -114,11 +114,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
                       setTrackSearchId(e.target.value);
                       setTrackResult(null);
                     }}
-                    className="flex-1 text-xs bg-transparent focus:outline-none font-mono text-slate-900 placeholder:text-slate-400"
+                    className="flex-1 text-xs bg-transparent focus:outline-none font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-slate-900 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition-colors whitespace-nowrap shadow-2xs"
+                    className="px-4 py-2 bg-slate-900 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800 text-white font-semibold text-xs rounded-lg transition-colors whitespace-nowrap shadow-2xs"
                   >
                     Track Live
                   </button>

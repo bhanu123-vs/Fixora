@@ -86,7 +86,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && (
         isAdmin() ||
         resource.data.studentUid == request.auth.uid ||
-        (isWarden() && resource.data.assignedWardenUid == request.auth.uid) ||
+        (isWarden() && (resource.data.assignedWardenUid == request.auth.uid || (hasUserDoc() && resource.data.building == userDoc().assignedHostel))) ||
         (isStaff() && resource.data.assignedStaffUid == request.auth.uid)
       );
 

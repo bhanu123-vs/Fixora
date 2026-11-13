@@ -32,9 +32,16 @@ import {
   confirmResolutionInFirestore,
   reopenComplaintInFirestore,
   ensureAdminUserRecord,
+  ensureUserProfileDoc,
+  isRegistrationInProgress,
+  updateUserProfileInFirestore,
 } from '../services/firebaseService';
 
+export type ThemeMode = 'light' | 'dark';
+
 interface AppContextType {
+  theme: ThemeMode;
+  toggleTheme: () => void;
   currentUser: UserProfile | null;
   firebaseAuthUser: FirebaseUser | null;
   isFirebaseConnected: boolean;
@@ -93,6 +100,31 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fixora_theme');
+      if (saved === 'dark' || saved === 'light') {
+        return saved;
+      }
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    root.style.colorScheme = theme;
+    localStorage.setItem('fixora_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   const [firebaseAuthUser, setFirebaseAuthUser] = useState<FirebaseUser | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(true);
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
@@ -130,23 +162,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (profile) {
             setCurrentUser(profile);
             localStorage.setItem('fixora_current_user', JSON.stringify(profile));
-          } else {
-            // Fallback profile if Firestore user document is being created
-            const fallbackProfile: UserProfile = {
-              id: user.uid,
-              uid: user.uid,
-              role: user.email === 'bhanuvenkatanagesh@gmail.com' ? 'admin' : 'student',
-              name: user.displayName || (user.email === 'bhanuvenkatanagesh@gmail.com' ? 'Admin User' : 'Campus Student'),
-              email: user.email || '',
-              avatar: user.photoURL || '/src/assets/images/avatar_student_lead_1794215793948.jpg',
-              phone: user.phoneNumber || '+91 98765 00000',
-              department: 'General Engineering',
-              accountStatus: 'active',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            setCurrentUser(fallbackProfile);
-            localStorage.setItem('fixora_current_user', JSON.stringify(fallbackProfile));
+          } else if (!isRegistrationInProgress()) {
+            // Self-heal missing Firestore user document (e.g. if earlier signup write was interrupted)
+            const createdProfile = await ensureUserProfileDoc(user);
+            setCurrentUser(createdProfile);
+            localStorage.setItem('fixora_current_user', JSON.stringify(createdProfile));
           }
           // Ensure super admin record is registered in Firestore
           ensureAdminUserRecord();
@@ -249,7 +269,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const profile = await registerWithEmail(email, pass, profileData);
       setCurrentUser(profile);
-      setCurrentViewState('student-dashboard');
+      setCurrentViewState(
+        profile.role === 'admin' || profile.role === 'warden'
+          ? 'admin-dashboard'
+          : 'student-dashboard'
+      );
     } catch (err) {
       console.error('Registration error', err);
       throw err;
@@ -624,6 +648,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser) return;
     const modified = { ...currentUser, ...updated };
     setCurrentUser(modified);
+    if (auth.currentUser && auth.currentUser.uid === currentUser.uid) {
+      updateUserProfileInFirestore(auth.currentUser.uid, updated).catch((err) => {
+        console.error('Failed to sync profile update to Firestore:', err);
+      });
+    }
   };
 
   const resetDemoData = () => {
@@ -635,6 +664,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider
       value={{
+        theme,
+        toggleTheme,
         currentUser,
         firebaseAuthUser,
         isFirebaseConnected,

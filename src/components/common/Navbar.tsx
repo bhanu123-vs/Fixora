@@ -11,6 +11,8 @@ import {
   X,
   FileText,
   RotateCcw,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -31,6 +33,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     notifications,
     resetDemoData,
     isFirebaseConnected,
+    theme,
+    toggleTheme,
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -80,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-6 h-16">
           {/* ZONE 1: Fixora Logo & VIT-AP University Emblem */}
@@ -257,13 +261,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* ZONE 3: 1 primary action / user controls */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* ZONE 3: Theme Toggle + 1 primary action / user controls */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            {/* Dark / Light Mode Toggle Switch */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={theme === 'dark'}
+              aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              onClick={toggleTheme}
+              className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer items-center rounded-full border p-0.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-1 ${
+                theme === 'dark'
+                  ? 'bg-slate-900 border-red-800/70'
+                  : 'bg-slate-100 border-slate-300'
+              }`}
+            >
+              <span className="sr-only">Toggle dark or light mode</span>
+              <span
+                className={`pointer-events-none flex h-5.5 w-5.5 items-center justify-center rounded-full shadow-sm transition-transform duration-200 ${
+                  theme === 'dark'
+                    ? 'translate-x-6 bg-red-700 text-white'
+                    : 'translate-x-0 bg-white text-amber-500'
+                }`}
+              >
+                {theme === 'dark' ? (
+                  <Moon className="h-3 w-3" />
+                ) : (
+                  <Sun className="h-3 w-3" />
+                )}
+              </span>
+            </button>
+
             {isLanding ? (
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => onOpenAuth('student')}
-                  className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0"
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0"
                 >
                   Sign In
                 </button>
@@ -351,6 +385,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <ArrowRightLeft className="w-3.5 h-3.5 text-slate-400" />
                         Switch to {currentUser?.role === 'admin' ? 'Student' : 'Admin'} Mode
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          toggleTheme();
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full px-3.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center justify-between gap-2"
+                      >
+                        <span className="flex items-center gap-2">
+                          {theme === 'dark' ? (
+                            <Sun className="w-3.5 h-3.5 text-amber-400" />
+                          ) : (
+                            <Moon className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                        </span>
                       </button>
 
                       <button
